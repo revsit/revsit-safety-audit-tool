@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production
+dist/
+build/
+
+# Misc
+.DS_Store
+*.pem
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vite
+vite.config.js.timestamp-*
+web/vite.config.js.timestamp-*
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Temporary database scripts
+web/scripts/seed-*.js
+web/scripts/test-*.js
+web/scripts/debug-*.js
+web/scripts/run-*.js
+web/scripts/inspect-*.js
+web/scripts/fix-*.js
+!web/scripts/seed-users.js
+!web/scripts/db-migrate.js
+!web/scripts/sync-profiles.js
+!web/scripts/verify-users.js
