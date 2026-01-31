@@ -39,6 +39,11 @@ export default function Dashboard() {
         }
     };
 
+    const handleLogout = async () => {
+        await logout();
+        navigate("/login");
+    };
+
     return (
         <div className="min-h-screen bg-gray-900 text-white font-inter">
             {/* Header */}
@@ -55,7 +60,7 @@ export default function Dashboard() {
                 <div className="flex items-center gap-4">
                     <span className="text-sm text-gray-400 hidden sm:block bg-gray-700/50 px-3 py-1 rounded-full border border-gray-600">{user?.email}</span>
                     <button
-                        onClick={logout}
+                        onClick={handleLogout}
                         className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-lg text-sm font-medium transition duration-200"
                     >
                         <LogOut size={16} /> Logout

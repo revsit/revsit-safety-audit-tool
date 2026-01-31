@@ -57,7 +57,16 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = async () => {
-        await supabase.auth.signOut();
+        try {
+            const { error } = await supabase.auth.signOut();
+            if (error) throw error;
+        } catch (error) {
+            console.error("Logout error:", error.message);
+        } finally {
+            // Always clear local state even if server-side signout has issues
+            setUser(null);
+            setUserRole(null);
+        }
     };
 
     return (

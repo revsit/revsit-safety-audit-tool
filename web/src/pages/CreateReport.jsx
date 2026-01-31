@@ -233,7 +233,9 @@ export default function CreateReport() {
                                 {Array.from(files).map((file, i) => (
                                     <div key={i} className="flex items-center justify-between text-sm text-gray-300 bg-gray-700/50 p-2 rounded">
                                         <span>{file.name}</span>
-                                        <span className="text-xs bg-blue-900 text-blue-300 px-2 py-0.5 rounded">Pending Upload</span>
+                                        <span className={`text-xs px-2 py-0.5 rounded transition-all ${loading ? "bg-blue-600 text-white animate-pulse" : "bg-emerald-900 text-emerald-300 border border-emerald-500/30"}`}>
+                                            {loading ? "Uploading..." : "Ready to Sync"}
+                                        </span>
                                     </div>
                                 ))}
                             </div>
