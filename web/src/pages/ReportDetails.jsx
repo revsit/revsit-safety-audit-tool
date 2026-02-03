@@ -144,17 +144,48 @@ export default function ReportDetails() {
                             </div>
                         </div>
 
-                        {/* Dynamic Details */}
-                        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
-                            <h3 className="text-lg font-semibold mb-4 text-gray-200">Incident Details</h3>
-                            <div className="space-y-3">
-                                {details.map((detail) => (
-                                    <div key={detail.id} className="border-l-2 border-gray-600 pl-3">
-                                        <span className="block text-xs text-gray-500 uppercase">{detail.question_key.replace("_", " ")}</span>
-                                        <p className="text-gray-200">{detail.answer_value?.toString()}</p>
-                                    </div>
-                                ))}
+                        {/* Dynamic Details - Grouped */}
+                        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 space-y-8">
+
+                            {/* General Details Group */}
+                            <div>
+                                <h3 className="text-lg font-semibold mb-3 text-blue-400 border-b border-gray-700 pb-2">Report Details</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                                    {details.filter(d => !['contractor', 'employee', 'injury', 'body_parts'].some(k => d.question_key.includes(k)) && d.question_key !== 'description').map((detail) => (
+                                        <div key={detail.id} className="">
+                                            <span className="block text-xs text-gray-500 uppercase font-medium">{detail.question_key.replace(/_/g, " ")}</span>
+                                            <p className="text-gray-200 text-sm mt-1">{detail.answer_value?.toString()}</p>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
+
+                            {/* Detailed Description */}
+                            {details.find(d => d.question_key === 'description') && (
+                                <div>
+                                    <h3 className="text-sm font-semibold mb-2 text-gray-400">Description</h3>
+                                    <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-700/50">
+                                        <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
+                                            {details.find(d => d.question_key === 'description').answer_value}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Person/Injury Specific Group */}
+                            {details.some(d => ['employee', 'contractor', 'person', 'injury', 'body'].some(k => d.question_key.includes(k))) && (
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-3 text-blue-400 border-b border-gray-700 pb-2">Person & Injury Details</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                                        {details.filter(d => ['employee', 'contractor', 'person', 'injury', 'body'].some(k => d.question_key.includes(k))).map((detail) => (
+                                            <div key={detail.id} className="">
+                                                <span className="block text-xs text-gray-500 uppercase font-medium">{detail.question_key.replace(/_/g, " ")}</span>
+                                                <p className="text-gray-200 text-sm mt-1">{detail.answer_value?.toString()}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Attachments */}
