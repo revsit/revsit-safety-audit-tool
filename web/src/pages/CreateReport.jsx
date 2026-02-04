@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +15,12 @@ export default function CreateReport() {
         return new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
     };
 
+    // Master Data State
+    const [sites, setSites] = useState([]);
+    const [departments, setDepartments] = useState([]);
+    const [areas, setAreas] = useState([]);
+    const [equipments, setEquipments] = useState([]);
+
     // Initial State including all possible fields
     const [formData, setFormData] = useState({
         category: "near_miss",
@@ -23,9 +29,16 @@ export default function CreateReport() {
         title: "",
         date: "",
         time: "",
-        location: "",
-        reported_date_time: getLocalISOString(), // Default to system local time
-        department: "",
+
+        // IDs for Dropdowns
+        site_id: "",
+        department_id: "",
+        area_id: "",
+        equipment_id: "",
+
+        location: "", // Still kept for extra detail if needed, but driven by site_id roughly
+        reported_date_time: getLocalISOString(),
+
         process_type: "",
         witness: "",
         description: "",
@@ -53,15 +66,68 @@ export default function CreateReport() {
         contractor_agency: "",
         contractor_name: "",
 
-        // Injury Nature & Body Parts (Shared by both Person Types)
+        // Injury Nature & Body Parts
         injury_nature: "",
         body_parts_affected: "",
 
-        // Keep illness symptom if needed, or map to description
         symptoms: "",
     });
 
     const [files, setFiles] = useState([]);
+
+    // Load Sites on Mount
+    useEffect(() => {
+        fetchSites();
+    }, []);
+
+    const fetchSites = async () => {
+        const { data } = await supabase.from('master_sites').select('*');
+        setSites(data || []);
+    };
+
+    // Cascading Loaders
+    useEffect(() => {
+        if (formData.site_id) {
+            fetchDepartments(formData.site_id);
+            // Reset children
+            setDepartments([]);
+            setAreas([]);
+            setEquipments([]);
+            setFormData(prev => ({ ...prev, department_id: "", area_id: "", equipment_id: "" }));
+        }
+    }, [formData.site_id]);
+
+    const fetchDepartments = async (siteId) => {
+        const { data } = await supabase.from('master_departments').select('*').eq('site_id', siteId);
+        setDepartments(data || []);
+    };
+
+    useEffect(() => {
+        if (formData.department_id) {
+            fetchAreas(formData.department_id);
+            setAreas([]);
+            setEquipments([]);
+            setFormData(prev => ({ ...prev, area_id: "", equipment_id: "" }));
+        }
+    }, [formData.department_id]);
+
+    const fetchAreas = async (deptId) => {
+        const { data } = await supabase.from('master_areas').select('*').eq('department_id', deptId);
+        setAreas(data || []);
+    };
+
+    useEffect(() => {
+        if (formData.area_id) {
+            fetchEquipments(formData.area_id);
+            setEquipments([]);
+            setFormData(prev => ({ ...prev, equipment_id: "" }));
+        }
+    }, [formData.area_id]);
+
+    const fetchEquipments = async (areaId) => {
+        const { data } = await supabase.from('master_equipments').select('*').eq('area_id', areaId);
+        setEquipments(data || []);
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -85,6 +151,12 @@ export default function CreateReport() {
                         category: formData.category,
                         created_by: user.id,
                         status: "submitted",
+
+                        // New Master Data Keys
+                        site_id: formData.site_id || null,
+                        department_id: formData.department_id || null,
+                        area_id: formData.area_id || null,
+                        equipment_id: formData.equipment_id || null,
                     },
                 ])
                 .select()
@@ -96,25 +168,27 @@ export default function CreateReport() {
 
             // 2. Prepare Dynamic Details based on Category
             const details = [];
-
-            // Helper to add detail only if it has a value (optional, but keeps DB clean)
-            // For this implementation, we'll save empty checking to allow optional fields if needed, 
-            // but the form has 'required' attributes.
             const addDetail = (key, value) => {
                 if (value !== undefined && value !== null) {
                     details.push({ report_id: reportId, question_key: key, answer_value: value });
                 }
             };
 
-            // --- Common Fields (for the sections relevant to them) ---
+            // --- Common details ---
+            // Note: Site/Dept/Area/Equipment are now columns, but we can also store in details given the diverse dashboard requirements
+            // For now, relying on columns for them.
+
             if (formData.category === "near_miss") {
                 addDetail("title", formData.title);
                 addDetail("near_miss_type", formData.near_miss_type);
                 addDetail("date", formData.date);
-                addDetail("location", formData.location);
                 addDetail("time", formData.time);
+
+                // Redundant readable location in case Master Data link is broken (optional)
+                const siteName = sites.find(s => s.id === formData.site_id)?.name;
+                addDetail("location_name", siteName);
+
                 addDetail("reported_date_time", formData.reported_date_time);
-                addDetail("department", formData.department);
                 addDetail("person_type", formData.person_type);
                 addDetail("process_type", formData.process_type);
                 addDetail("witness", formData.witness);
@@ -125,10 +199,8 @@ export default function CreateReport() {
 
             } else if (formData.category === "injury" || formData.category === "illness") {
                 addDetail("title", formData.title);
-                addDetail("location", formData.location);
                 addDetail("date", formData.date);
                 addDetail("time", formData.time);
-                addDetail("department", formData.department);
                 addDetail("reported_date_time", formData.reported_date_time);
                 addDetail("witness", formData.witness);
                 addDetail("object_substances_involved", formData.object_substances_involved);
@@ -219,6 +291,34 @@ export default function CreateReport() {
         </div>
     );
 
+    const renderDropdown = (label, name, options, required = true) => (
+        <div>
+            <label className="block text-sm font-medium text-gray-400 mb-1">{label}</label>
+            <select
+                name={name}
+                required={required}
+                value={formData[name]}
+                onChange={handleChange}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none transition"
+            >
+                <option value="">Select {label}</option>
+                {options.map(opt => (
+                    <option key={opt.id} value={opt.id}>{opt.name}</option>
+                ))}
+            </select>
+        </div>
+    );
+
+    const renderLocationSection = () => (
+        <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600 grid grid-cols-1 md:grid-cols-2 gap-4 col-span-2">
+            <h4 className="md:col-span-2 text-sm font-semibold text-blue-400 uppercase tracking-wide">Location & Equipment</h4>
+            {renderDropdown("Site", "site_id", sites)}
+            {renderDropdown("Department", "department_id", departments)}
+            {renderDropdown("Area", "area_id", areas)}
+            {renderDropdown("Equipment", "equipment_id", equipments, false)}
+        </div>
+    );
+
     return (
         <div className="min-h-screen bg-gray-900 text-white p-6 font-inter">
             <div className="max-w-4xl mx-auto">
@@ -255,15 +355,17 @@ export default function CreateReport() {
                             {formData.category.replace("_", " ")} Details
                         </h3>
 
+                        {/* GLOBAL LOCATION SECTION FOR ALL */}
+                        {renderLocationSection()}
+
                         {formData.category === "near_miss" && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {renderInput("Near Miss Title", "title")}
                                 {renderInput("Near Miss Type", "near_miss_type")}
                                 {renderInput("Date", "date", "date")}
                                 {renderInput("Time", "time", "time")}
-                                {renderInput("Location", "location")}
+
                                 {renderInput("Reported Date & Time", "reported_date_time", "datetime-local")}
-                                {renderInput("Department", "department")}
                                 {renderInput("Process Type", "process_type")}
                                 {renderInput("Person Type", "person_type")}
                                 {renderInput("Witness", "witness", "text", false)}
@@ -280,10 +382,8 @@ export default function CreateReport() {
                                 {/* General Injury Info */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {renderInput(`${formData.category === 'illness' ? 'Illness' : 'Injury'} Title`, "title")}
-                                    {renderInput("Location", "location")}
                                     {renderInput("Date", "date", "date")}
                                     {renderInput("Time", "time", "time")}
-                                    {renderInput("Department", "department")}
                                     {renderInput("Reported Date & Time", "reported_date_time", "datetime-local")}
                                     {renderInput("Process Type", "process_type")}
                                     {renderInput("Witness", "witness", "text", false)}

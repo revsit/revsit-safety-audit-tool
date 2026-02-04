@@ -91,7 +91,7 @@ export default function Dashboard() {
                             <p className="text-sm text-gray-300">Manage incidents and safety reports.</p>
                         </div>
                         <div className="flex gap-3 w-full md:w-auto">
-                            {userRole === 'safety_engineer' && (
+                            {(userRole === 'safety_engineer' || userRole === 'safety_manager') && (
                                 <button
                                     onClick={() => navigate('/create-report')}
                                     className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl font-semibold shadow-lg transition transform hover:-translate-y-0.5"
@@ -112,7 +112,7 @@ export default function Dashboard() {
                     ) : reports.length === 0 ? (
                         <div className="bg-gray-800 rounded-2xl p-10 text-center border border-gray-700 border-dashed">
                             <p className="text-gray-400 mb-2">No reports found.</p>
-                            {userRole === 'safety_engineer' && <p className="text-sm text-gray-500">Create a new report to get started.</p>}
+                            {(userRole === 'safety_engineer' || userRole === 'safety_manager') && <p className="text-sm text-gray-500">Create a new report to get started.</p>}
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-4">
